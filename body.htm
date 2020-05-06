@@ -1,0 +1,89 @@
+<html>
+
+<head>
+    <title>{0}</title>
+</head>
+
+<style type="text/css">
+    @media only screen and (max-width: 480px) {
+
+        /* mobile-specific CSS styles go here */
+        table[class=email],
+        table[class=email-content] {
+            clear: both;
+            width: 320px !important;
+        }
+    }
+</style>
+
+<body>
+
+    <!-- First HTML table acts as a pseudo BODY tag to protect email inside -->
+    <table width="99%" border="0" cellpadding="0" cellspacing="0">
+        <tr>
+            <td align="center" valign="top" bgcolor="#efefef">
+
+                <!-- Second HTML table is the email itself -->
+                <table class="email" width="500" border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td align="center" valign="top">
+
+                            <p
+                                style="font-family: Helvetica, Arial, sans-serif; font-size: 10px; line-height: 12px; margin-top: 20px; margin-right: 0; margin-bottom: 20px; margin-left: 0; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-right: 0;">
+                                {1}
+                            </p>
+
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="left" valign="top" bgcolor="#ffffff">
+
+                            <h1
+                                style="font-family: Georgia, Times, serif; font-size: 48px; font-weight: normal; line-height: 48px; margin-top: 20px; margin-right: 0; margin-bottom: 10px; margin-left: 20px; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-right: 0;">
+                                {2}
+                            </h1>
+
+                        </td>
+                    </tr>
+                    <tr>
+                        <td valign="top" bgcolor="#999999">
+
+                            <!-- Third HTML table is the left column of content -->
+                            <table class="email-content" align="left" width="350" border="0" cellpadding="0"
+                                cellspacing="0">
+                                <tr>
+                                    <td valign="top" bgcolor="#353535">
+                                        <p
+                                            style="color: #efefef; font-family: Georgia, Times, serif; font-size: 15px; line-height: 22px; margin-top: 0; margin-right: 10px; margin-bottom: 20px; margin-left: 20px; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-right: 0;">
+                                            <pre>
+                                            {3}
+                                            </pre>
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <!-- Close third HTML table -->
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="left" valign="top" bgcolor="#cccccc" height="100">
+
+                            <p
+                                style="font-family: Helvetica, Arial, sans-serif; font-size: 12px; line-height: 12px; margin-top: 20px; margin-right: 0; margin-bottom: 20px; margin-left: 20px; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-right: 0;">
+                                {4}
+                            </p>
+
+                        </td>
+                    </tr>
+                </table>
+                <!-- Close second HTML table -->
+
+            </td>
+        </tr>
+    </table>
+    <!-- Close first HTML table -->
+
+
+</body>
+
+</html>

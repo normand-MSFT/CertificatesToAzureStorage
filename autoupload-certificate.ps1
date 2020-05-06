@@ -1,3 +1,6 @@
+
+#requires
+
 <#
 This Sample Code is provided for the purpose of illustration only and is not intended 
 to be used in a production environment.  THIS SAMPLE CODE AND ANY RELATED INFORMATION 
@@ -9,83 +12,122 @@ Sample Code, provided that You agree: (i) to not use Our name, logo, or trademar
 market Your software product in which the Sample Code is embedded; (ii) to include a 
 valid copyright notice on Your software product in which the Sample Code is embedded; 
 and (iii) to indemnify, hold harmless, and defend Us and Our suppliers from and 
-against any claims or lawsuits, including attorneys’ fees, that arise or result from 
+against any claims or lawsuits, including attorneys' fees, that arise or result from 
 the use or distribution of the Sample Code.
 #>
 
+
+
+[CmdletBinding(DefaultParameterSetName = "EventLog")]
 param
 (
-    [Parameter(Mandatory = $false, 
-    HelpMessage= "Destination Blob Container Url.")]
-    [String]$DestBlobContainerUrl = "http:\\pki1.markwilab.com\certdata",
-    #[String]$DestBlobContainerUrl = "https://markwipkistg.blob.core.windows.net/certdata",
+    [Parameter(Mandatory = $true, HelpMessage = "Destination Blob Container Url.")]
+    [String]$BlobContainerUrl,
 
-    [Parameter(Mandatory = $false, 
-    HelpMessage= "Input the full filePath of the AzCopy.exe, e.g.: C:\Program Files (x86)\Microsoft SDKs\Azure\AzCopy\AzCopy.exe")]
-    [String]$AzCopyPath = "C:\Users\Administrator\Desktop\markwi\AzCopy.exe",
+    [Parameter(Mandatory = $false, HelpMessage = "Input the full filePath of the AzCopy.exe, e.g.: C:\Program Files (x86)\Microsoft SDKs\Azure\AzCopy\AzCopy.exe")]
+    [ValidateScript( { if ( -not (Test-Path -Path $_))
+            {
+                Write-Host "AZCopy.exe not found at $(Split-Path -Path $_ -Parent)."
+            } 
+        })]        
+    [String]$AZCopyExecutable,
 
-    [Parameter(Mandatory = $false, 
-    HelpMessage="Sets the local cert folder where we find the CRT and CRL files to upload to blob container.")]
-    [String]$LocalCertFolder = "C:\Users\Administrator\Desktop\markwi\files",
+    [Parameter(Mandatory = $false, HelpMessage = "Sets the local cert folder where we find the CRT and CRL files to upload to blob container.")]
+    [ValidateScript( { Test-Path -Path $_ })]
+    [String]$CertificateFolder,
 
-    [Parameter(Mandatory = $false, 
-    HelpMessage="Your shared access token so you don't need to log into session.")]
-    [String]$SASToken = "?sv=2018-03-28&ss=b&srt=sco&sp=rwdlac&se=2019-11-18T04:59:52Z&st=2019-09-17T19:59:52Z&spr=https,http&sig=tNCA%2Fnh9znTeCLsWecOeL8Jl%2BkIUXOhHTgP6kQuoLpA%3D"
-    #[String]$SASToken = "?sv=2018-03-28&si=myidentifier&sr=c&sig=8ezkaU03ej%2BHYX%2F89DodkVZtO1T59GZJZlNF%2FH8hPTw%3D"
+    [Parameter(Mandatory = $true, HelpMessage = "Your shared access token so you don't need to log into session.")]
+    [String]$SASToken,
+
+    [Parameter(ParameterSetName = "EventLog")]    
+    [ValidateSet("System", "Application", "Security")]
+    $EventLog,
+
+    [Parameter(ParameterSetName = "EventLog")]
+    $EventSource,
     
+    [Parameter(ParameterSetName = "Mail")]
+    $SMTPServer
+
 )
 
-function WriteTo-EventLog
+function Write-EventlogWrapper
 {
-    param($EventLogParameters, $SourceName = "ADCS_AZCopy")    
-    if( (Get-EventLog -LogName Application -Source $SourceName) -eq $null)
+    param($EventLogParameters)    
+    if ( $null -eq (Get-EventLog -EventLog $EventLog -Source $EventSource
+    ))
     {
-        New-EventLog -Source $SourceName -LogName Application
+        New-EventLog -Source $EventSource
+         -EventLog $EventLog
     }
 
-    Write-EventLog @EventLogParameters -Source $SourceName
+    Write-EventLog @EventLogParameters -Source $EventSource
 
-} # end WriteTo-EventLog
 
-function Check-AZCopyVersion
+} # end Write-EventlogWrapper
+
+function Get-AZCopyVersion
 {
-    $AzCmd = [string]::Format("""{0}"" --version",$AzCopyPath)    
-    $Result = cmd /c $AzCmd
+    $AzCmd = [string]::Format("""{0}"" --version", $AZCopyExecutable)    
+    $Result = cmd.exe /c $AzCmd
     $RegexPattern = "\bv?[0-9]+\.[0-9]+\.[0-9]+(?:\.[0-9]+)?\b"
 
     $Output = [regex]::Match($Result, $RegexPattern)
-    return $Output.Value
-} # end Check-AZCopyVersion
+    return ([version]$Output.Value)
 
-if( -not (Test-Path -Path $AzCopyPath))
-{
-    Write-Host "AZCopy.exe not found at $(Split-Path -Path $AzCopyPath -Parent)."
-}
+} # end Get-AZCopyVersion
 
-if( ([version](Check-AzCopyVersion)) -lt "10.2.1")
+if ( (Get-AzCopyVersion) -lt "10.2.1")
 {
-    $AzCopyPath = Read-Host "Version of AzCopy.exe found at specified directory is of a lower, unsupported version."
+    $AZCopyExecutable = Read-Host "Version of AzCopy.exe found at specified directory is of a lower, unsupported version."
 }
         
-$AzCopyCmd = [string]::Format("""{0}"" sync ""{1}"" ""{2}{3}"" --put-md5 --delete-destination=true", $AzCopyPath, $LocalCertFolder, $DestBlobContainerUrl, $SASToken)    
-$Result = cmd /c $AzCopyCmd
+$AzCopyCmd = [string]::Format("""{0}"" sync ""{1}"" ""{2}{3}"" --put-md5 --delete-destination=true", $AZCopyExecutable, $CertificateFolder, $BlobContainerUrl, $SASToken)    
+$Result = cmd.exe /c $AzCopyCmd
 
-foreach($SearchResult in $Result)
+$Result.foreach({ Write-Host $_ })
+
+$Message = $Result -join "`n"
+
+if ($PSCmdlet.ParameterSetName -eq "Eventlog")
 {
-    Write-Host $SearchResult
+    $EventLogParameters = @{ EventLog = "Application"; Message = $Message }
+
+    if ($LASTEXITCODE -ne 0) # Failure Case
+    {
+        $EventLogParameters.Add("EntryType", "Error")
+        $EventLogParameters.Add("EventId", 355)
+    }
+    else # Success Case
+    {
+        $EventLogParameters.Add("EntryType", "Information")
+        $EventLogParameters.Add("EventId", 354)
+    }
+
+    Write-EventlogWrapper -EventLogParameters $EventLogParameters
+
 }
-
-$EventLogParameters = @{ LogName = "Application"; Message = ($Result -join "`n") }
-
-if($LASTEXITCODE -ne 0) # Failure Case
+elseif ($PSCmdlet.ParameterSetName -eq "Mail")
 {
-    $EventLogParameters.Add("EntryType", "Error")
-    $EventLogParameters.Add("EventId", 355)
-}
-else # Success Case
-{
-    $EventLogParameters.Add("EntryType", "Information")
-    $EventLogParameters.Add("EventId", 354)
-}
 
-WriteTo-EventLog -EventLogParameters $EventLogParameters
+    $body = Get-Content -Path .\body.htm | Out-String 
+    $bodyAsHtml = [string]::format($body, 
+        "Certificate Upload Notification", 
+        "Last sync time: {0}" -f (Get-Date).ToString(),
+        "Contoso, LLC - a Microsoft property"
+        $Message,
+        "Contoso IT Support"
+    
+        $parameters = @{
+        SMTPServer = $SMTPServer
+        Port = $port
+        From = $from 
+        To = $to 
+        Subject = $subject
+        Body = $body
+    }
+
+    # This will use the credentials of the logged on user otherwise we can pass a PSCredential object into the Credential parameter. 
+    Send-MailMessage @parameters -UseSsl
+
+}
