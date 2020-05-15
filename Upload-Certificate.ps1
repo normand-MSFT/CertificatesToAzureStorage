@@ -34,8 +34,8 @@ PS C:\> .\Upload-Certificate.ps1 -DestinationUrl http://mystorageaccount.blob.co
     This example does not require credentials and simply concatenates the DestinationUrl and SasToken into one
     Uri to use with an azcopy.exe sync command. It requires the user providing a token to the script.
 .EXAMPLE
-PS C:\> .\Upload-Certificate.ps1 -DestinationUrl http://mystorageaccount.blob.core.windows.net/mystoragecontainer -CreateStorageContainer
-    This example requires credentials and uses an ARM template to create a resourcegroup, storageaccount, and storagecontainer. 
+PS C:\> .\Upload-Certificate.ps1 -CreateStorageContainer
+    This example requires credentials and uses an ARM template to create a resourcegroup (used default value), storageaccount, and storagecontainer. 
     Afterwards, it retrieves a storage account key and generates a 2-hour sas token to use for the remainder of the script.
 .INPUTS
     Inputs (if any)
