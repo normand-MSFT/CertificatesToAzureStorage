@@ -34,13 +34,65 @@ PS C:\> .\Upload-Certificate.ps1 -DestinationUrl http://mystorageaccount.blob.co
     This example does not require credentials and simply concatenates the DestinationUrl and SasToken into one
     Uri to use with an azcopy.exe sync command. It requires the user providing a token to the script.
 .EXAMPLE
-PS C:\> .\Upload-Certificate.ps1 -CreateStorageContainer
+PS C:\> .\Upload-Certificate.ps1 -CreateStorageContainer -OutEmail -OutEventLog
     This example requires credentials and uses an ARM template to create a resourcegroup (uses a default value for $GroupName), storageaccount, and storagecontainer. 
-    Afterwards, it retrieves a storage account key and generates a 2-hour sas token to use for the remainder of the script.     
+    Afterwards, it retrieves a storage account key and generates a 2-hour sas token to use for the remainder of the script.  
+    
+    It also sends an email notification and write to the event log upon complete. 
+
+
 .INPUTS
     Inputs (if any)
 .OUTPUTS
-    Using the switches (-OutEmail and -OutEventLog) you can receive the results of the synchronization process.
+    Using the switches (-OutEmail and -OutEventLog) you can receive the results of the synchronization process. To 
+    customize the variables for -OutEmail, look for the following and modify accordingly.
+    
+    if ($OutEmail.IsPresent)
+    {
+        $from = "user01@contoso.com"
+        $to = "user02@contoso.com"
+        $smtpServer = "smtp.contoso.com"
+
+        $emailMessage = New-Object System.Net.Mail.MailMessage($from , $to)
+        $emailMessage.Subject = ("Certificate Sync - {0} " -f (Get-Date).ToUniversalTime() ) 
+        $emailMessage.Body = $message
+    
+        $smtpClient = New-Object System.Net.Mail.SmtpClient($smtpServer, 587)
+        $smtpClient.EnableSsl = $true
+
+        # Tested originally against smtp.live.com but needed to create an app password because of 2FA issues.
+        $smtpClient.Credentials = New-Object System.Net.NetworkCredential( "user01@contoso.com", 'password' )
+        $smtpClient.Send($emailMessage)
+    }
+
+    To customize the variables for -OutEventLog, look for the following and modify accordingly.
+
+    if ($OutEventLog.isPresent)
+    {
+        $parameters = @{ eventLog = "Application"; message = $message }
+        if ($LASTEXITCODE -ne 0) # Failure Case
+        {
+            $parameters.Add("EntryType", "Error")
+            $parameters.Add("EventId", 355)
+        }
+        else # Success Case
+        {
+            $parameters.Add("EntryType", "Information")
+            $parameters.Add("EventId", 354)
+        }
+
+        $eventSource = "ADCS_AZCopy"
+        parameters.Add("Source", $eventSource)
+
+        if ( $null -eq (Get-EventLog -EventLog $eventLog -Source $eventSource ))
+        {
+            New-EventLog -Source $eventSource -EventLog $eventLog
+        }
+
+        Write-EventLog @parameters
+    }
+
+
 .NOTES
     1. The version of azcopy.exe tested is 10.2.1. 
     2. The email functionality was tested against smtp.live.com and required an app password be used if 2FA is configured.
