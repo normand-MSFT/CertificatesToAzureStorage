@@ -5,32 +5,24 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "PowerShell: Launch Current File and output to event log",
+            "name": "PowerShell: Launch Current File with manual url",
             "type": "PowerShell",
             "request": "launch",
             "script": "${file}",
             "cwd": "${file}",
             "args": [
-                " -destinationBlobContainerUrl http://pki1.markwilab.com/certdata",
-                " -azCopyPath c:/temp/azcopy.exe",
-                " -LocalCertFolder c:/temp/certs",
-                " -SASToken ?sv=2018-03-28&ss=b&srt=sco&sp=rwdlac&se=2019-11-18T04:59:52Z&st=2019-09-17T19:59:52Z&spr=https,http&sig=tNCA%2Fnh9znTeCLsWecOeL8Jl%2BkIUXOhHTgP6kQuoLpA%3D",
-                " -LogName Application",
-                " -SourceName ADCS-AZCopy",
+                "-DestinationUrl https://adcsstoragepycid7lo446jk.blob.core.windows.net/certspycid7lo446jk"
             ]
         },
         {
-            "name": "PowerShell: Launch Current File and send email",
+            "name": "PowerShell: Launch Current File with new container",
             "type": "PowerShell",
             "request": "launch",
             "script": "${file}",
             "cwd": "${file}",
             "args": [
-                " -destinationBlobContainerUrl http://pki1.markwilab.com/certdata",
-                " -azCopyPath c:/temp/azcopy.exe",
-                " -LocalCertFolder c:/temp/certs",
-                " -SASToken ?sv=2018-03-28&ss=b&srt=sco&sp=rwdlac&se=2019-11-18T04:59:52Z&st=2019-09-17T19:59:52Z&spr=https,http&sig=tNCA%2Fnh9znTeCLsWecOeL8Jl%2BkIUXOhHTgP6kQuoLpA%3D",
-                " -SmtpServer smtp.o365.com"
+                "-CreateStorageContainer",
+                "-GroupName testrg"
             ]
         }
     ]
