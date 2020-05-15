@@ -202,7 +202,7 @@ if ($OutEmail.IsPresent)
     $emailMessage.Subject = ("Certificate Sync - {0} " -f (Get-Date).ToUniversalTime() ) 
     $emailMessage.Body = $message
  
-    $smtpClient = New-Object System.Net.Mail.smtpClient($smtpServer, 587)
+    $smtpClient = New-Object System.Net.Mail.SmtpClient($smtpServer, 587)
     $smtpClient.EnableSsl = $true
 
     # Tested originally against smtp.live.com but needed to create an app password because of 2FA issues.
