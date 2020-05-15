@@ -139,8 +139,12 @@ if ($PSCmdlet.ParameterSetName -eq "Existing")
 {
     if ([string]::IsNullOrEmpty($SASToken))
     {
+        if ([string]::IsNullOrEmpty($GroupName))
+        {
+            Write-Host "Enter a valid resource group name (-GroupName)"
+            exit
+        }
         Connect-AzAccount | Out-Null
-        # https://adcsstoragepycid7lo446jk.blob.core.windows.net/certspycid7lo446jk
         $uri = New-Object System.Uri($DestinationUrl)
         $storageAccountName = $uri.Host.Split(".")[0]
         $url = Get-SasTokenUrl -StorageAccountName $storageAccountName -DestinationUrl $DestinationUrl
@@ -152,6 +156,11 @@ if ($PSCmdlet.ParameterSetName -eq "Existing")
 }
 elseif ($PSCmdlet.ParameterSetName -eq "New")
 {
+    if ([string]::IsNullOrEmpty($GroupName))
+    {
+        Write-Host "Enter a valid resource group name (-GroupName)"
+        exit
+    }
     Connect-AzAccount | Out-Null
     $url = New-AzureStorageAccount
 }
