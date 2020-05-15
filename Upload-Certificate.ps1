@@ -13,6 +13,40 @@ against any claims or lawsuits, including attorneys' fees, that arise or result 
 the use or distribution of the Sample Code.
 #>
 
+<#
+.SYNOPSIS
+    Script demonstrating certificate synchronization of on-premise folder with an azure storage container.
+.DESCRIPTION
+    This script, while can be used to sync anything files with an azure storage container, is designed to demonstrate
+    how we can sync certificates in a local directory with an azure storage container. This allows us to use the
+    container as a backup.
+.EXAMPLE
+    PS C:\> .\Upload-Certificate.ps1 -DestinationUrl http://mystorageaccount.blob.core.windows.net/mystoragecontainer -GroupName adcsrg
+    This example parses the DestinationUrl to come up with the storage account name (mystorageaccount)
+    and the storage container name (mystoragecontainer). It will require credentials and uses the Connect-AzAccount
+    cmdlet to authenticate you thru user interaction at present. Optionally, if we setup a service principal and/or
+    certificate to authenticate this process will make it better for automated processess.
+
+    Using the above storageaccountname, groupname, and storagecontainer it generates a sastoken with a hard-coded two 
+    hour duration. 
+.EXAMPLE
+PS C:\> .\Upload-Certificate.ps1 -DestinationUrl http://mystorageaccount.blob.core.windows.net/mystoragecontainer -SasToken "mytoken"
+    This example does not require credentials and simply concatenates the DestinationUrl and SasToken into one
+    Uri to use with an azcopy.exe sync command. It requires the user providing a token to the script.
+.EXAMPLE
+PS C:\> .\Upload-Certificate.ps1 -DestinationUrl http://mystorageaccount.blob.core.windows.net/mystoragecontainer -CreateStorageContainer
+    This example requires credentials and uses an ARM template to create a resourcegroup, storageaccount, and storagecontainer. 
+    Afterwards, it retrieves a storage account key and generates a 2-hour sas token to use for the remainder of the script.
+.INPUTS
+    Inputs (if any)
+.OUTPUTS
+    Using the switches (-OutEmail and -OutEventLog) you can receive the results of the synchronization process.
+.NOTES
+    1. The version of azcopy.exe tested is 10.2.1. 
+    2. The email functionality was tested against smtp.live.com and required an app password be used if 2FA is configured.
+    3. Send-MailMessage isn't used as it is deprecated with no current PowerShell replacement.
+#>
+
 [CmdletBinding(DefaultParameterSetName = "Existing")]
 param
 (
@@ -101,8 +135,6 @@ function New-AzureStorageAccount
 }
 
 $url = [string]::Empty
-$attachment01 = [string]::Empty
-
 if ($PSCmdlet.ParameterSetName -eq "Existing")
 {
     if ([string]::IsNullOrEmpty($SASToken))
@@ -126,22 +158,18 @@ elseif ($PSCmdlet.ParameterSetName -eq "New")
 
 if ( (Get-AzCopyVersion) -lt "10.2.1")
 {
-    $Executable = Read-Host "Version of AzCopy.exe found at specified directory is of a lower, unsupported version."
+    $executable = Read-Host "Version of AzCopy.exe found at specified directory is of a lower, unsupported version."
 }
 
-$cmd = [string]::Format("""{0}"" sync ""{1}"" ""{2}"" --put-md5 --delete-destination=true", $Executable, $Path, $url)    
+$cmd = [string]::Format("""{0}"" sync ""{1}"" ""{2}"" --put-md5 --delete-destination=true", $executable, $Path, $url)    
 $result = cmd.exe /c $cmd
 
 $result | ForEach-Object { Write-Host $_ }
 $message = $result -join "`n"
 
-# https://github.com/Azure/azure-storage-azcopy/issues/874
-# The log file reference ($attachment01) in azcopy output is invalid. The file 
-# does not exist.
-
 if ($OutEventLog.isPresent)
 {
-    $parameters = @{ EventLog = "Application"; message = $message }
+    $parameters = @{ eventLog = "Application"; message = $message }
     if ($LASTEXITCODE -ne 0) # Failure Case
     {
         $parameters.Add("EntryType", "Error")
@@ -153,12 +181,15 @@ if ($OutEventLog.isPresent)
         $parameters.Add("EventId", 354)
     }
 
-    if ( $null -eq (Get-EventLog -EventLog $EventLog -Source $EventSource ))
+    $eventSource = "ADCS_AZCopy"
+    parameters.Add("Source", $eventSource)
+
+    if ( $null -eq (Get-EventLog -EventLog $eventLog -Source $eventSource ))
     {
-        New-EventLog -Source $EventSource -EventLog $EventLog
+        New-EventLog -Source $eventSource -EventLog $eventLog
     }
 
-    Write-EventLog @Parameters -Source $EventSource  
+    Write-EventLog @parameters
 }
 
 if ($OutEmail.IsPresent)
@@ -175,6 +206,6 @@ if ($OutEmail.IsPresent)
     $smtpClient.EnableSsl = $true
 
     # Tested originally against smtp.live.com but needed to create an app password because of 2FA issues.
-    $smtpClient.Credentials = New-Object System.Net.NetworkCredential( "user01@contoso.com", 'password' );
+    $smtpClient.Credentials = New-Object System.Net.NetworkCredential( "user01@contoso.com", 'password' )
     $smtpClient.Send($emailMessage)
 }
