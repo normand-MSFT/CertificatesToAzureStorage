@@ -21,7 +21,8 @@ the use or distribution of the Sample Code.
     how we can sync certificates in a local directory with an azure storage container. This allows us to use the
     container as a backup.
 .EXAMPLE
-    PS C:\> .\Upload-Certificate.ps1 -DestinationUrl http://mystorageaccount.blob.core.windows.net/mystoragecontainer -GroupName adcsrg
+    PS C:\Scripts> .\Upload-Certificate.ps1 -DestinationUrl http://mystorageaccount.blob.core.windows.net/mystoragecontainer -GroupName adcsrg
+    
     This example parses the DestinationUrl to come up with the storage account name (mystorageaccount)
     and the storage container name (mystoragecontainer). It does require credentials and uses the Connect-AzAccount
     cmdlet to authenticate you. Optionally, if we setup a service principal and/or
@@ -30,17 +31,17 @@ the use or distribution of the Sample Code.
     Using the above storage account name, resource group name, and storage container it generates a sastoken with a hard-coded two 
     hour duration. 
 .EXAMPLE
-PS C:\> .\Upload-Certificate.ps1 -DestinationUrl http://mystorageaccount.blob.core.windows.net/mystoragecontainer -SasToken 'mytoken'
+    PS C:\Scripts> .\Upload-Certificate.ps1 -DestinationUrl http://mystorageaccount.blob.core.windows.net/mystoragecontainer -SasToken 'mytoken'
+    
     This example does not require credentials and simply concatenates the DestinationUrl and SasToken into one
     Uri to use with an azcopy.exe sync command. It requires the user providing a token to the script.
 .EXAMPLE
-PS C:\> .\Upload-Certificate.ps1 -CreateStorageContainer -OutEmail -OutEventLog
+    PS C:\Scripts> .\Upload-Certificate.ps1 -CreateStorageContainer -OutEmail -OutEventLog
+
     This example requires credentials and uses an ARM template to create a resourcegroup (uses a default value for $GroupName), storageaccount, and storagecontainer. 
     Afterwards, it retrieves a storage account key and generates a 2-hour sas token to use for the remainder of the script.  
-    
+
     It also sends an email notification and write to the event log upon complete. 
-
-
 .INPUTS
     Inputs (if any)
 .OUTPUTS
