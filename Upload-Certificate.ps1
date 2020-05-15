@@ -23,11 +23,11 @@ the use or distribution of the Sample Code.
 .EXAMPLE
     PS C:\> .\Upload-Certificate.ps1 -DestinationUrl http://mystorageaccount.blob.core.windows.net/mystoragecontainer -GroupName adcsrg
     This example parses the DestinationUrl to come up with the storage account name (mystorageaccount)
-    and the storage container name (mystoragecontainer). It will require credentials and uses the Connect-AzAccount
-    cmdlet to authenticate you thru user interaction at present. Optionally, if we setup a service principal and/or
-    certificate to authenticate this process will make it better for automated processess.
+    and the storage container name (mystoragecontainer). It does require credentials and uses the Connect-AzAccount
+    cmdlet to authenticate you. Optionally, if we setup a service principal and/or
+    certificate to authenticate this process will make it better for automated processes.
 
-    Using the above storageaccountname, groupname, and storagecontainer it generates a sastoken with a hard-coded two 
+    Using the above storage account name, resource group name, and storage container it generates a sastoken with a hard-coded two 
     hour duration. 
 .EXAMPLE
 PS C:\> .\Upload-Certificate.ps1 -DestinationUrl http://mystorageaccount.blob.core.windows.net/mystoragecontainer -SasToken "mytoken"
@@ -35,8 +35,8 @@ PS C:\> .\Upload-Certificate.ps1 -DestinationUrl http://mystorageaccount.blob.co
     Uri to use with an azcopy.exe sync command. It requires the user providing a token to the script.
 .EXAMPLE
 PS C:\> .\Upload-Certificate.ps1 -CreateStorageContainer
-    This example requires credentials and uses an ARM template to create a resourcegroup (used default value), storageaccount, and storagecontainer. 
-    Afterwards, it retrieves a storage account key and generates a 2-hour sas token to use for the remainder of the script.
+    This example requires credentials and uses an ARM template to create a resourcegroup (uses a default value for $GroupName), storageaccount, and storagecontainer. 
+    Afterwards, it retrieves a storage account key and generates a 2-hour sas token to use for the remainder of the script.     
 .INPUTS
     Inputs (if any)
 .OUTPUTS
