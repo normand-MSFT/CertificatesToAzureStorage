@@ -30,7 +30,7 @@ the use or distribution of the Sample Code.
     Using the above storage account name, resource group name, and storage container it generates a sastoken with a hard-coded two 
     hour duration. 
 .EXAMPLE
-PS C:\> .\Upload-Certificate.ps1 -DestinationUrl http://mystorageaccount.blob.core.windows.net/mystoragecontainer -SasToken "mytoken"
+PS C:\> .\Upload-Certificate.ps1 -DestinationUrl http://mystorageaccount.blob.core.windows.net/mystoragecontainer -SasToken 'mytoken'
     This example does not require credentials and simply concatenates the DestinationUrl and SasToken into one
     Uri to use with an azcopy.exe sync command. It requires the user providing a token to the script.
 .EXAMPLE
