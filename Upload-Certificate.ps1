@@ -38,7 +38,6 @@ the use or distribution of the Sample Code.
 
     Using the above storage account name, resource group name, and storage container it generates a SaS token with a
     3 hour duration.
-
 .EXAMPLE
     PS C:\Scripts> .\Upload-Certificate.ps1 `
      -ContainerUrl http://mystorageaccount.blob.core.windows.net/mystoragecontainer `
