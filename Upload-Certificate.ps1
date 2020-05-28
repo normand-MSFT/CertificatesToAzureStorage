@@ -21,27 +21,50 @@ the use or distribution of the Sample Code.
     how we can sync certificates in a local directory with an azure storage container. This allows us to use the
     container as a backup.
 .EXAMPLE
-    PS C:\Scripts> .\Upload-Certificate.ps1 -DestinationUrl http://mystorageaccount.blob.core.windows.net/mystoragecontainer -GroupName adcsrg
+    PS C:\Scripts> .\Upload-Certificate.ps1 `
+     -ContainerUrl http://mystorageaccount.blob.core.windows.net/mystoragecontainer `
+     -CertificateFolderPath c:\mycertificates
+     -ResourceGroupName adcsrg `
+     -TimeDuration 3 `
+     -TenantName contoso.onmicrosoft.com `
+     -ApplicationId '12345' `
+     -ApplicationSecret '12345'
     
-    This example parses the DestinationUrl to come up with the storage account name (mystorageaccount)
-    and the storage container name (mystoragecontainer). It does require credentials and uses the Connect-AzAccount
-    cmdlet to authenticate you. Optionally, if we setup a service principal and/or
-    certificate to authenticate this process will make it better for automated processes.
+    This example parses the ContainerUrl to retrieve the storage account name and storage container name. It
+    uses the Connect-AzAccount cmdlet to authenticate using an applicationid and application secret. For this to work
+    the user needs to create an app registration in Azure Active Directory and provide it an appropriate access role 
+    for the storage account. Alternatively we can decide to use a certificate thumbprint. The certificates in 
+    $CertificateFolderPath are then synced into the $ContainerUrl.
 
-    Using the above storage account name, resource group name, and storage container it generates a sastoken with a hard-coded two 
-    hour duration. 
+    Using the above storage account name, resource group name, and storage container it generates a SaS token with a
+    3 hour duration.
 .EXAMPLE
-    PS C:\Scripts> .\Upload-Certificate.ps1 -DestinationUrl http://mystorageaccount.blob.core.windows.net/mystoragecontainer -SasToken 'mytoken'
+PS C:\Scripts> .\Upload-Certificate.ps1 `
+    -ContainerUrl http://mystorageaccount.blob.core.windows.net/mystoragecontainer `
+    -CertificateFolderPath c:\mycertificates
+    -ResourceGroupName adcsrg `
+    -TimeDuration 3 `
+    -TenantName contoso.onmicrosoft.com `
+    -ApplicationId '12345' `
+    -Thumbprint '12345'
+
+This example parses the ContainerUrl to retrieve the storage account name and storage container name. It
+uses the Connect-AzAccount cmdlet to authenticate using an applicationid and certificate thumbprint. For this to work
+the user needs to create an app registration in Azure Active Directory and provide it an appropriate access role 
+for the storage account. Alternatively we can decide to use an application secret. The certificates in 
+$CertificateFolderPath are then synced into the $ContainerUrl.
+
+Using the above storage account name, resource group name, and storage container it generates a SaS token with a
+3 hour duration.
+.EXAMPLE
+    PS C:\Scripts> .\Upload-Certificate.ps1 `
+     -ContainerUrl http://mystorageaccount.blob.core.windows.net/mystoragecontainer `
+     -CertificateFolderPath c:\mycertificates
+     -SasToken '?sv=ABC...'
     
-    This example does not require credentials and simply concatenates the DestinationUrl and SasToken into one
-    Uri to use with an azcopy.exe sync command. It requires the user providing a token to the script.
-.EXAMPLE
-    PS C:\Scripts> .\Upload-Certificate.ps1 -CreateStorageContainer -OutEmail -OutEventLog
-
-    This example requires credentials and uses an ARM template to create a resourcegroup (uses a default value for $GroupName), storageaccount, and storagecontainer. 
-    Afterwards, it retrieves a storage account key and generates a 2-hour sas token to use for the remainder of the script.  
-
-    It also sends an email notification and write to the event log upon complete. 
+    This example does not require credentials and simply concatenates the ContainerUrl and SasToken into one
+    url to use with azcopy.exe. It requires the user have a valid SaS token. The certificates in $CertificateFolderPath
+    are then synced into the $ContainerUrl.
 .INPUTS
     Inputs (if any)
 .OUTPUTS
@@ -100,7 +123,7 @@ the use or distribution of the Sample Code.
     3. Send-MailMessage isn't used as it is deprecated with no current PowerShell replacement.
 #>
 
-[CmdletBinding(DefaultParameterSetName = "Existing")]
+[CmdletBinding(DefaultParameterSetName = "ExistingSasToken")]
 param
 (
     [Parameter(Helpmessage = "Input the full path to the azcopy.exe executable")]
@@ -110,28 +133,47 @@ param
             } 
         })]        
     [string]
-    $Executable = "C:\Users\normand\desktop\azcopy\azcopy.exe",
+    $Executable = "{Path}\azcopy.exe",
 
     [Parameter(Helpmessage = "Sets the local cert folder")]
+    [Alias("Path")]
     [ValidateScript( { Test-Path -Path $_ })]
     [string]
-    $Path = "C:\Users\normand\desktop\azcopy\files",
+    $CertificateFolderPath = "{LocalCertificateFolder}",
 
-    [Parameter()]
-    [string]
-    $GroupName = "adcsrg",
-
-    [Parameter(Mandatory = $true, ParameterSetName = "Existing", Helpmessage = "Destination Blob Container Url.")]
+    [Parameter(ParameterSetName = "NewSasToken")]
     [ValidateNotNullOrEmpty()]
-    [string]$DestinationUrl,
-
-    [Parameter(ParameterSetName = "Existing")]
     [string]
-    $SASToken,
+    $ResourceGroupName = "{ResourceGroup}",
 
-    [Parameter(ParameterSetName = "New")]
-    [switch]
-    $CreateStorageContainer,
+    [Parameter(ParameterSetName = "NewSasToken")]
+    [Alias("TenantId")]
+    [string]
+    $TenantName = "{TenantName}",
+
+    [Parameter(ParameterSetName = "NewSasToken")]
+    [ValidateNotNullOrEmpty()]
+    [string]
+    $ApplicationId = "{ApplicationId}",
+
+    [Parameter(ParameterSetName = "NewSasToken")]
+    [ValidateNotNullOrEmpty()]
+    [string]
+    $ApplicationSecret = "{ApplicationSecret}",
+
+    [Parameter(ParameterSetName = "NewSasToken", HelpMessage = "Enter time in hours for SAS token duration")]
+    [int]
+    $TokenDuration = 2,
+    
+    [Parameter(Mandatory = $true, Helpmessage = "Enter a valid storage container url.")]
+    [Alias("DestinationUrl")]
+    [ValidateNotNullOrEmpty()]
+    [string]$ContainerUrl = "{StorageContainerUrl}",
+
+    [Parameter(ParameterSetName = "ExistingSasToken")]
+    [ValidateNotNullOrEmpty()]
+    [string]
+    $SASToken = '{SAS-Token}',
 
     [Parameter()]
     [switch]
@@ -156,66 +198,34 @@ function Get-SasTokenUrl
     param
     (
         $StorageAccountName,
-        $DestinationUrl
+        $ContainerUrl
     )
 
-    $key = (Get-AzStorageAccountKey -ResourceGroupName $GroupName -Name $StorageAccountName)[0].value
+    $key = (Get-AzStorageAccountKey -ResourceGroupName $ResourceGroupName -Name $StorageAccountName)[0].value
     $context = New-AzStorageContext -StorageAccountName $StorageAccountName -StorageAccountKey $key
     $sasToken = New-AzStorageAccountSASToken `
         -Service Blob -ResourceType Service, Container, Object `
-        -Permission racwdlup `
+        -Permission rwdl `
         -Context $context `
-        -ExpiryTime (Get-Date).AddHours(2)
+        -ExpiryTime (Get-Date).AddHours($TokenDuration)
 
     Write-Host ("sasToken = {0}" -f $sasToken)
-    return ('{0}{1}' -f $DestinationUrl, $sasToken)
-}
-function New-AzureStorageAccount
-{
-    $resourceGroupName = New-AzResourceGroup -Name $GroupName -Location "Central US" | Select-Object -ExpandProperty ResourceGroupName
-    $deployment = New-AzResourceGroupDeployment `
-        -Name TestDeployment `
-        -TemplateFile .\Templates\azuredeploy.json `
-        -TemplateParameterFile .\Templates\azuredeploy.parameters.json `
-        -ResourceGroupName $resourceGroupName `
-        -Verbose
-
-    $storageAccountName = $deployment.Outputs.Item('storageAccountName').Value
-    $destinationUrl = $deployment.Outputs.Item('DestinationUrl').Value
-
-    $url = Get-SasTokenUrl -StorageAccountName $storageAccountName -DestinationUrl $destinationUrl
-    return $url
+    return ('{0}{1}' -f $ContainerUrl, $sasToken)
 }
 
 $url = [string]::Empty
-if ($PSCmdlet.ParameterSetName -eq "Existing")
+if ($PSCmdlet.ParameterSetName -eq "ExistingSasToken")
 {
-    if ([string]::IsNullOrEmpty($SASToken))
-    {
-        if ([string]::IsNullOrEmpty($GroupName))
-        {
-            Write-Host "Enter a valid resource group name (-GroupName)"
-            exit
-        }
-        Connect-AzAccount | Out-Null
-        $uri = New-Object System.Uri($DestinationUrl)
-        $storageAccountName = $uri.Host.Split(".")[0]
-        $url = Get-SasTokenUrl -StorageAccountName $storageAccountName -DestinationUrl $DestinationUrl
-    }
-    else
-    {
-        $url = "{0}{1}" -f $DestinationUrl, $SASToken
-    }
+    $url = "{0}{1}" -f $ContainerUrl, $SASToken
 }
-elseif ($PSCmdlet.ParameterSetName -eq "New")
+elseif ($PSCmdlet.ParameterSetName -eq "NewSasToken")
 {
-    if ([string]::IsNullOrEmpty($GroupName))
-    {
-        Write-Host "Enter a valid resource group name (-GroupName)"
-        exit
-    }
-    Connect-AzAccount | Out-Null
-    $url = New-AzureStorageAccount
+    $SecurePassword = ConvertTo-SecureString -String $ApplicationSecret -AsPlainText -Force
+    $Credential = New-Object System.Management.Automation.PSCredential -ArgumentList $ApplicationId, $SecurePassword
+    Connect-AzAccount -Credential $Credential -ServicePrincipal -Tenant $TenantName | Out-Null
+    $uri = New-Object System.Uri($ContainerUrl)
+    $storageAccountName = $uri.Host.Split(".")[0]
+    $url = Get-SasTokenUrl -StorageAccountName $storageAccountName -ContainerUrl $ContainerUrl
 }
 
 if ( (Get-AzCopyVersion) -lt "10.2.1")
@@ -223,7 +233,7 @@ if ( (Get-AzCopyVersion) -lt "10.2.1")
     $executable = Read-Host "Version of AzCopy.exe found at specified directory is of a lower, unsupported version."
 }
 
-$cmd = [string]::Format("""{0}"" sync ""{1}"" ""{2}"" --put-md5 --delete-destination=true", $executable, $Path, $url)    
+$cmd = [string]::Format("""{0}"" sync ""{1}"" ""{2}"" --put-md5 --delete-destination=true", $executable, $CertificateFolderPath, $url)    
 $result = cmd.exe /c $cmd
 
 $result | ForEach-Object { Write-Host $_ }
@@ -267,7 +277,6 @@ if ($OutEmail.IsPresent)
     $smtpClient = New-Object System.Net.Mail.SmtpClient($smtpServer, 587)
     $smtpClient.EnableSsl = $true
 
-    # Tested originally against smtp.live.com but needed to create an app password because of 2FA issues.
     $smtpClient.Credentials = New-Object System.Net.NetworkCredential( "user01@contoso.com", 'password' )
     $smtpClient.Send($emailMessage)
 }
