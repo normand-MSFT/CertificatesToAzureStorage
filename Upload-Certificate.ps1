@@ -50,27 +50,7 @@ the use or distribution of the Sample Code.
 .INPUTS
     Inputs (if any)
 .OUTPUTS
-    Using the switches (-OutEmail and -OutEventLog) you can receive the results of the synchronization process. To 
-    customize the variables for -OutEmail, look for the following and modify accordingly.
-    
-    if ($OutEmail.IsPresent)
-    {
-        $from = "user01@contoso.com"
-        $to = "user02@contoso.com"
-        $smtpServer = "smtp.contoso.com"
-
-        $emailMessage = New-Object System.Net.Mail.MailMessage($from , $to)
-        $emailMessage.Subject = ("Certificate Sync - {0} " -f (Get-Date).ToUniversalTime() ) 
-        $emailMessage.Body = $message
-    
-        $smtpClient = New-Object System.Net.Mail.SmtpClient($smtpServer, 587)
-        $smtpClient.EnableSsl = $true
-
-        # Tested originally against smtp.live.com but needed to create an app password because of 2FA issues.
-        $smtpClient.Credentials = New-Object System.Net.NetworkCredential( "user01@contoso.com", 'password' )
-        $smtpClient.Send($emailMessage)
-    }
-
+    Using the switch -OutEventLog you can receive the results of the synchronization process. 
     To customize the variables for -OutEventLog, look for the following and modify accordingly.
 
     if ($OutEventLog.isPresent)
@@ -100,12 +80,10 @@ the use or distribution of the Sample Code.
 
 
 .NOTES
-    1. The version of azcopy.exe tested is 10.2.1. 
-    2. The email functionality was tested against smtp.live.com and required an app password be used if 2FA is configured.
-    3. Send-MailMessage isn't used as it is deprecated with no current PowerShell replacement.
+The version of azcopy.exe tested is 10.2.1. 
 #>
 
-[CmdletBinding(DefaultParameterSetName = "ExistingSasToken")]
+[CmdletBinding(DefaultParameterSetName = "ExistingToken")]
 param
 (
     [Parameter(HelpMessage = "Enter path to the azcopy.exe executable")]
@@ -123,27 +101,27 @@ param
     [string]
     $CertificateFolderPath = "{CertificateFolderPath}",
 
-    [Parameter(ParameterSetName = "NewSasToken", HelpMessage = "Enter your resource group name")]
+    [Parameter(ParameterSetName = "NewToken", HelpMessage = "Enter your resource group name")]
     [ValidateNotNullOrEmpty()]
     [string]
     $ResourceGroupName = "{ResourceGroup}",
 
-    [Parameter(ParameterSetName = "NewSasToken", HelpMessage = "Enter your tenant name")]
+    [Parameter(ParameterSetName = "NewToken", HelpMessage = "Enter your tenant name")]
     [Alias("TenantId")]
     [string]
     $TenantName = "{TenantName}",
 
-    [Parameter(ParameterSetName = "NewSasToken", HelpMessage = "Enter your application id")]
+    [Parameter(ParameterSetName = "NewToken", HelpMessage = "Enter your application id")]
     [ValidateNotNullOrEmpty()]
     [string]
     $ApplicationId = "{ApplicationId}",
 
-    [Parameter(ParameterSetName = "NewSasToken", HelpMessage = "Enter your application secret")]
+    [Parameter(ParameterSetName = "NewToken", HelpMessage = "Enter your application secret")]
     [ValidateNotNullOrEmpty()]
     [string]
     $ApplicationSecret = "{ApplicationSecret}",
 
-    [Parameter(ParameterSetName = "NewSasToken", HelpMessage = "Enter SAS token duration (in hours)")]
+    [Parameter(ParameterSetName = "NewToken", HelpMessage = "Enter SAS token duration (in hours)")]
     [int]
     $TokenDuration = 2,
     
@@ -152,14 +130,10 @@ param
     [ValidateNotNullOrEmpty()]
     [string]$ContainerUrl = "{StorageContainerUrl}",
 
-    [Parameter(ParameterSetName = "ExistingSasToken", HelpMessage = "Enter your SAS token")]
+    [Parameter(ParameterSetName = "ExistingToken", HelpMessage = "Enter your SAS token")]
     [ValidateNotNullOrEmpty()]
     [string]
-    $SASToken = '{SAS-Token}',
-
-    [Parameter(HelpMessage = "Use to send report to email")]
-    [switch]
-    $OutEmail,
+    $SasToken = '{SAS-Token}',
 
     [Parameter(HelpMessage = "Use to send report to event log")]
     [switch]
@@ -183,16 +157,16 @@ function Get-SasTokenUrl
         $ContainerUrl
     )
 
-    $key = (Get-AzStorageAccountKey -ResourceGroupName $ResourceGroupName -Name $StorageAccountName)[0].value
-    $context = New-AzStorageContext -StorageAccountName $StorageAccountName -StorageAccountKey $key
-    $sasToken = New-AzStorageAccountSASToken `
+    $storageAccountKey = (Get-AzStorageAccountKey -ResourceGroupName $ResourceGroupName -Name $StorageAccountName)[0].value
+    $context = New-AzStorageContext -StorageAccountName $StorageAccountName -StorageAccountKey $storageAccountKey
+    $token = New-AzStorageAccountSASToken `
         -Service Blob -ResourceType Service, Container, Object `
         -Permission rwdl `
         -Context $context `
         -ExpiryTime (Get-Date).AddHours($TokenDuration)
 
-    Write-Host ("sasToken = {0}" -f $sasToken)
-    return ('{0}{1}' -f $ContainerUrl, $sasToken)
+    Write-Host ("SAS Token = {0}" -f $token)
+    return ('{0}{1}' -f $ContainerUrl, $token)
 } # end Get-SasTokenUrl
 
 
@@ -202,11 +176,11 @@ if ( (Get-AzCopyVersion) -lt "10.2.1")
 }
 
 $url = [string]::Empty
-if ($PSCmdlet.ParameterSetName -eq "ExistingSasToken")
+if ($PSCmdlet.ParameterSetName -eq "ExistingToken")
 {
-    $url = "{0}{1}" -f $ContainerUrl, $SASToken
+    $url = "{0}{1}" -f $ContainerUrl, $SasToken
 }
-elseif ($PSCmdlet.ParameterSetName -eq "NewSasToken")
+elseif ($PSCmdlet.ParameterSetName -eq "NewToken")
 {
     $SecurePassword = ConvertTo-SecureString -String $ApplicationSecret -AsPlainText -Force
     $Credential = New-Object System.Management.Automation.PSCredential -ArgumentList $ApplicationId, $SecurePassword
@@ -245,21 +219,4 @@ if ($OutEventLog.isPresent)
     }
 
     Write-EventLog @parameters
-}
-
-if ($OutEmail.IsPresent)
-{
-    $from = "user01@contoso.com"
-    $to = "user02@contoso.com"
-    $smtpServer = "smtp.contoso.com"
-
-    $emailMessage = New-Object System.Net.Mail.MailMessage($from , $to)
-    $emailMessage.Subject = ("Certificate Sync - {0} " -f (Get-Date).ToUniversalTime() ) 
-    $emailMessage.Body = $message
- 
-    $smtpClient = New-Object System.Net.Mail.SmtpClient($smtpServer, 587)
-    $smtpClient.EnableSsl = $true
-
-    $smtpClient.Credentials = New-Object System.Net.NetworkCredential( "user01@contoso.com", 'password' )
-    $smtpClient.Send($emailMessage)
 }
