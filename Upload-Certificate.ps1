@@ -211,7 +211,7 @@ if ($OutEventLog.isPresent)
     }
 
     $eventSource = "ADCS_AZCopy"
-    parameters.Add("Source", $eventSource)
+    $parameters.Add("Source", $eventSource)
 
     if ( $null -eq (Get-EventLog -EventLog $eventLog -Source $eventSource ))
     {
