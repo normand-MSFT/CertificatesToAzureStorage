@@ -107,22 +107,27 @@ param
 
     [Parameter(HelpMessage = 'Enter a valid storage container url')]
     [Alias('DestinationUrl')]
-    [uri]$ContainerUri = '{storage container url}',
+    [uri]
+    $ContainerUri = '{storage container url}',
 
     [Parameter(HelpMessage = 'Use to send report to event log on local machine')]
     [switch]
     $OutEventLog,
 
     [Parameter(HelpMessage = 'Mininum supported AZCopy version')]
-    [version]$AzCopyMinSupportVersion = '10.2.1',
+    [version]
+    $AzCopyMinSupportVersion = '10.2.1',
 
     [Parameter()]
+    [string]
     $Subscription = '{subscription id}',
 
     [Parameter(HelpMessage = 'The event source to assign event to. This works with the -OutEventLog switch. ')]
+    [string]
     $EventSource = 'ADCS_AZCopy',
 
     [Parameter(HelpMessage = 'The selected event log to write events against. ')]
+    [string]
     $EventLog = 'Application'
 )
 
