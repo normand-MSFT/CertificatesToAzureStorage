@@ -126,12 +126,7 @@ Using the above storage account name, resource group name, and storage container
 [CmdletBinding(DefaultParameterSetName = "ExistingSasToken")]
 param
 (
-    [Parameter(Helpmessage = "Input the full path to the azcopy.exe executable")]
-    [ValidateScript( { if ( -not (Test-Path -Path $_))
-            {
-                Write-Host "AZCopy.exe not found. Pleae check the path again." 
-            } 
-        })]        
+    [Parameter(Helpmessage = "Input the full path to the azcopy.exe executable")]  
     [string]
     $Executable = "{Path}\azcopy.exe",
 
@@ -241,27 +236,27 @@ $message = $result -join "`n"
 
 if ($OutEventLog.isPresent)
 {
-    $parameters = @{ eventLog = "Application"; message = $message }
+    $eventParameters = @{ LogName = 'Application'; Message = $message; Source = 'ADCS_AZCopy' }   
+
+    
     if ($LASTEXITCODE -ne 0) # Failure Case
     {
-        $parameters.Add("EntryType", "Error")
-        $parameters.Add("EventId", 355)
+        $eventParameters.Add("EntryType", "Error")
+        $eventParameters.Add("EventId", 355)
     }
     else # Success Case
     {
-        $parameters.Add("EntryType", "Information")
-        $parameters.Add("EventId", 354)
+        $eventParameters.Add("EntryType", "Information")
+        $eventParameters.Add("EventId", 354)
     }
+  
 
-    $eventSource = "ADCS_AZCopy"
-    parameters.Add("Source", $eventSource)
-
-    if ( $null -eq (Get-EventLog -EventLog $eventLog -Source $eventSource ))
+    if ( -not [System.Diagnostics.EventLog]::SourceExists($eventSource))
     {
-        New-EventLog -Source $eventSource -EventLog $eventLog
+        New-EventLog -Source $eventParameters.Source -LogName $eventParameters.LogName
     }
-
-    Write-EventLog @parameters
+    
+    Write-EventLog @eventParameters
 }
 
 if ($OutEmail.IsPresent)
