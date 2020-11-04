@@ -1,31 +1,78 @@
-# CertificatesToAzureStorage
+# Backup your certificates to Azure Storage
 
 
 ## Description
-This script provides the user two options using AZCopy with which to backup certificates into an Azure Storage Container. It uses AZCopy to perform the heavy lifting whereas the script uses the PowerShell Az module to generate a short-lived SAS (Shared Access Signature) token to provide permissions to upload the local certificates into the storage container. This can easily be set up as a recurring scheduled task. 
+ Whether you provide a SAS Token or opt to have a token generated that expires after a couple of hours, you'll see how easy it to backup your certificates into Azure Storage.
 
-## Prerequisites
-There are two items that this script needs to run. 
-1. Storage Account and container
-2. App Registration 
 
-This app registration needs the **Azure Storage** API permission and the owner role against the storage account where your container resides.
+## Scripts
 
-* ###### Using a certificate thumbprint
-For this to work correctly, you need to upload a public certificate into the app registration section under **Certificates and Secrets**. Additionally the client needs the private certificate imported into the local certificate store otherwise you will get an error. 
+### **Copy-PKIDataToAzureBlob-DynamicSAS.ps1**
+#### *Dependencies*: [azcopy.exe](#where-to-download-azcopy), Azure Storage Container, Az PowerShell module, AAD App Registration with *Azure Storage* API permission and storage account owner role
 
-**_Certificates are the recommended approach._**
 
-* ###### Using a client secret
-Not as secure as a certificate thumbprint but valid nonetheless. You can generate a client secret under the **Certificates and Secrets** section under your app registration.
+```powershell
+# Example with a certificate thumbprint
 
+$parameters = @{
+
+    AzCopyPath = '{path to azcopy.exe}'
+    ContainerUrl = '{url to storage container}'
+    CertificateFolderPath = '{path to local certificate folder}'
+    ResourceGroupName = '{resource group name}'
+    TokenDuration = 2
+    TenantName = '{tenant name}'
+    ApplicationId = '{guid}'
+    CertificateThumbprint = '{certificate thumbprint}'
+    Subscription = '{subscription id}'
+}
+
+.\Copy-PKIDataToAzureBlob-DynamicSAS.ps1 @parameters
+```
+
+```powershell
+# Example with a client secret
+
+$parameters = @{
+
+    AzCopyPath = '{path to azcopy.exe}'
+    ContainerUrl = '{url to storage container}'
+    CertificateFolderPath = '{path to local certificate folder}'
+    ResourceGroupName = '{resource group name}'
+    TokenDuration = 2
+    TenantName = '{tenant name}'
+    ApplicationId = '{guid}'
+    ClientSecret = '{client secret}'
+    Subscription = '{subscription id}'
+}
+
+.\Copy-PKIDataToAzureBlob-DynamicSAS.ps1 @parameters
+```
+
+This script will generate a short-lived SAS (Shared Access Signature) token to provide temporary access to the storage container. It supports both a certificate thumbprint and client secret as options. Both can be configured under the app registration section.
+
+For the certificate thumbprint option, you upload the public certificate into app registration section and have the matching private certificate imported into the local certificate store. This is the recommended approach.
+
+### **.\Copy-PKIDataToAzureBlob-StaticSAS.ps1**
+#### *Dependencies*: [azcopy.exe](#where-to-download-azcopy), Azure Storage Container, valid SAS token
+
+If you already have an existing SAS token you can use this script to upload the local certificates into the storage container.
+
+```powershell
+# Example with a SAS token
+
+$parameters = @{
+
+    AzCopyPath = '{path to azcopy.exe}'
+    ContainerUrl = '{url to storage container}'
+    CertificateFolderPath = '{path to local certificate folder}'
+    SASToken = '{provided SAS token}'
+}
+
+.\Copy-PKIDataToAzureBlob-StaticSAS.ps1 @parameters
+```
+
+---
 ## Where to download AzCopy?
-[Download the latest copy of AzCopy](https://aka.ms/downloadazcopy)
+[Download the latest copy of AzCopy](https://docs.microsoft.com/azure/storage/common/storage-use-azcopy-v10)
 
-[Getting Started with AzCopy](https://azure.microsoft.com/en-us/documentation/articles/storage-use-azcopy/)
-
-## Usage
-
-```
-Get-Help .\Add-CertificateToAzureStorageContainer.ps1
-```
