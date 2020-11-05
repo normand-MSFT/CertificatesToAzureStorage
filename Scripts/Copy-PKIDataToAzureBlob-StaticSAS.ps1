@@ -48,7 +48,7 @@ https://github.com/dotnet/platform-compat/blob/master/docs/DE0005.md
 
 param
 (
-    [Parameter(Mandatory = $true, HelpMessage = 'Enter path to the azcopy.exe executable')]
+    [Parameter(HelpMessage = 'Enter path to the azcopy.exe executable')]
     [ValidateNotNullOrEmpty()]
     [string]
     $AzCopyPath = '{Path to Azcopy.exe}',
@@ -59,12 +59,12 @@ param
     [string]
     $CertificateFolderPath = '{Path to local certificates folder}',
 
-    [Parameter(Mandatory = $true, HelpMessage = 'Enter a valid storage container url')]
+    [Parameter(HelpMessage = 'Enter a valid storage container url')]
     [ValidateNotNullOrEmpty()]
     [string]
     $ContainerUrl = '{storage container url}',
 
-    [Parameter(Mandatory = $true, HelpMessage = 'Enter a valid, non-expired SAS Token')]
+    [Parameter(HelpMessage = 'Enter a valid, non-expired SAS Token')]
     [ValidateNotNullOrEmpty()]
     [string]
     $SASToken = '{SAS-Token}',

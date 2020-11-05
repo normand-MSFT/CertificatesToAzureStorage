@@ -44,7 +44,7 @@ $parameters = @{
     TenantName = '{tenant name}'
     ApplicationId = '{guid}'
     CredentialType = 'Secret'
-    AppRegistrationCredential =  = '{client secret}'
+    AppRegistrationCredential =  '{client secret}'
     Subscription = '{subscription id}'
 }
 

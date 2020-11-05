@@ -70,7 +70,7 @@ the use or distribution of the Sample Code.
 [CmdletBinding()]
 param
 (
-    [Parameter(Mandatory = $true, HelpMessage = 'Enter path to the azcopy.exe executable')]
+    [Parameter(HelpMessage = 'Enter path to the azcopy.exe executable')]
     [ValidateNotNullOrEmpty()]
     [string]
     $AzCopyPath = '{Path to Azcopy.exe}',
