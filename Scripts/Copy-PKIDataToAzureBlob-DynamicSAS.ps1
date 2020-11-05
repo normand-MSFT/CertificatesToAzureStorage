@@ -23,7 +23,7 @@ the use or distribution of the Sample Code.
     how we can sync certificates in a local directory with an azure storage container. This allows us to use the
     container as a backup.
 .EXAMPLE
-    PS C:\Scripts> .\Copy-CertificateToAzureStorageContainerUsingGeneratedToken.ps1 `
+    PS C:\Scripts> .\Copy-PKIDataToAzureBlob-DynamicSAS.ps1 `
      -AzCopyPath c:\azcopy.exe
      -ContainerUrl http://mystorageaccount.blob.core.windows.net/mystoragecontainer `
      -CertificateFolderPath c:\mycertificates
@@ -31,7 +31,8 @@ the use or distribution of the Sample Code.
      -TokenDurationInHours 3 `
      -TenantName contoso.onmicrosoft.com `
      -ApplicationId '12345' `
-     -ClientSecret '12345'
+     -CredentialType Secret `
+     -AppRegistrationCredential '12345'
 
     This example parses the ContainerUrl to retrieve the storage account name and storage container name. It
     uses the Connect-AzAccount cmdlet to authenticate using an ClientId and application secret. For this to work
@@ -50,7 +51,8 @@ the use or distribution of the Sample Code.
      -TokenDurationInHours 3 `
      -TenantName contoso.onmicrosoft.com `
      -ApplicationId '12345' `
-     -CertificateThumbprint '12345'
+     -CredentialType Certificate
+     -AppRegistrationCredential '12345'
 
     This example parses the ContainerUrl to retrieve the storage account name and storage container name. It
     uses the Connect-AzAccount cmdlet to authenticate using an application id and certificate thumbprint. For this to work a few things need
@@ -65,45 +67,51 @@ the use or distribution of the Sample Code.
 .OUTPUTS
     Using the switch '-OutEventLog' you can receive the results of the synchronization process.#>
 
-[CmdletBinding(DefaultParameterSetName = "Secret")]
+[CmdletBinding()]
 param
 (
     [Parameter(Mandatory = $true, HelpMessage = 'Enter path to the azcopy.exe executable')]
+    [ValidateNotNullOrEmpty()]
     [string]
     $AzCopyPath = '{Path to Azcopy.exe}',
 
-    [Parameter(HelpMessage = 'Enter your local certificates folder')]
+    [Parameter(HelpMessage = 'Enter the path for the local folder to be synchronized,')]
+    [ValidateNotNullOrEmpty()]
     [Alias('Path')]
     [string]
     $CertificateFolderPath = '{Path to local certificates folder}',
 
-    [Parameter(HelpMessage = 'Enter your resource group name')]
+    [Parameter(HelpMessage = "Enter the storage account's resource group name")]
+    [ValidateNotNullOrEmpty()]
     [string]
     $ResourceGroupName = '{resource group name for storage account}',
 
-    [Parameter(HelpMessage = 'Enter your tenant name')]
+    [Parameter(HelpMessage = 'Enter your tenant name or ID')]
+    [ValidateNotNullOrEmpty()]
     [string]
     $TenantName = '{tenant name or id}',
 
-    [Parameter(HelpMessage = 'Enter your application id')]
+    [Parameter(HelpMessage = 'Enter your app registration application id')]
+    [ValidateNotNullOrEmpty()]
     [Alias('ClientId')]
     [string]
     $ApplicationId = '{appid for app registration}',
 
-    [Parameter(ParameterSetName = "Secret", HelpMessage = 'Enter your application secret')]
-    [string]
-    $ClientSecret = '{client secret}',
+    [Parameter()]
+    [ValidateSet("Certificate", "Secret")]
+    $CredentialType,
 
-    [Parameter(ParameterSetName = "Certificate", HelpMessage = 'Enter your certifcate thumbprint')]
+    [Parameter(HelpMessage = 'Enter your application secret or certificate thumbprint')]
     [string]
-    $CertificateThumbprint = '{certificate thumbprint}',
+    $AppRegistrationCredential = '{client secret or certificate thumbprint}',
 
     [Parameter(HelpMessage = 'Enter SAS token duration (in hours)')]
     [int]
     $TokenDurationInHours = 2,
 
-    [Parameter(Mandatory = $true, HelpMessage = 'Enter a valid storage container url')]
+    [Parameter(HelpMessage = 'Enter a valid storage container url')]
     [Alias('ContainerUrl')]
+    [ValidateNotNullOrEmpty()]
     [uri]
     $ContainerUri = '{storage container url}',
 
@@ -115,7 +123,8 @@ param
     [version]
     $AzCopyMinSupportVersion = '10.2.1',
 
-    [Parameter(Mandatory = $true)]
+    [Parameter()]
+    [ValidateNotNullOrEmpty()]
     [string]
     $Subscription = '{subscription id}',
 
@@ -162,13 +171,13 @@ function Get-SASTokenUrl
 
 if (-not (Test-Path -Path $AzCopyPath))
 {
-    Write-Error -Message "AzCopy executable path does not exist"
+    Write-Error -Message 'AzCopy executable path does not exist'
     exit
 }
 
 if (-not (Test-Path -Path $CertificateFolderPath))
 {
-    Write-Error -Message "The local certificate folder path does not exist"
+    Write-Error -Message 'The local certificate folder path does not exist'
     exit
 }
 
@@ -189,15 +198,15 @@ $parameters = @{
 
 try
 {
-    if ($PSCmdlet.ParameterSetName -eq 'Secret')
+    if ($CredentialType -eq 'Secret')
     {
-        $securePassword = ConvertTo-SecureString -String $ClientSecret -AsPlainText -Force
+        $securePassword = ConvertTo-SecureString -String $AppRegistrationCredential -AsPlainText -Force
         $credential = New-Object System.Management.Automation.PSCredential -ArgumentList $ApplicationId, $securePassword
         Connect-AzAccount @parameters -Credential $credential | Out-Null
     }
     else
     {
-        Connect-AzAccount @parameters -ApplicationId $ApplicationId -CertificateThumbprint $CertificateThumbprint | Out-Null
+        Connect-AzAccount @parameters -ApplicationId $ApplicationId -CertificateThumbprint $AppRegistrationCredential | Out-Null
     }
 
     $storageAccountName = $ContainerUri.Host.Split('.')[0]
@@ -235,6 +244,6 @@ try
 catch
 {
     Write-Host ($_.Exception.GetBaseException().Message)
-    Write-Host "Exiting script"
+    Write-Host 'Exiting script'
     exit
 }

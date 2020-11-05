@@ -23,7 +23,8 @@ $parameters = @{
     TokenDuration = 2
     TenantName = '{tenant name}'
     ApplicationId = '{guid}'
-    CertificateThumbprint = '{certificate thumbprint}'
+    CredentialType = 'Certificate'
+    AppRegistrationCredential = '{certificate thumbprint}'
     Subscription = '{subscription id}'
 }
 
@@ -42,7 +43,8 @@ $parameters = @{
     TokenDuration = 2
     TenantName = '{tenant name}'
     ApplicationId = '{guid}'
-    ClientSecret = '{client secret}'
+    CredentialType = 'Secret'
+    AppRegistrationCredential =  = '{client secret}'
     Subscription = '{subscription id}'
 }
 

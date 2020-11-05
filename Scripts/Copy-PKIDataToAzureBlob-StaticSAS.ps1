@@ -49,15 +49,18 @@ https://github.com/dotnet/platform-compat/blob/master/docs/DE0005.md
 param
 (
     [Parameter(Mandatory = $true, HelpMessage = 'Enter path to the azcopy.exe executable')]
+    [ValidateNotNullOrEmpty()]
     [string]
     $AzCopyPath = '{Path to Azcopy.exe}',
 
-    [Parameter(HelpMessage = 'Enter your local certificates folder')]
+    [Parameter(HelpMessage = 'Enter the path for the local folder to be synchronized,')]
+    [ValidateNotNullOrEmpty()]
     [Alias('Path')]
     [string]
     $CertificateFolderPath = '{Path to local certificates folder}',
 
     [Parameter(Mandatory = $true, HelpMessage = 'Enter a valid storage container url')]
+    [ValidateNotNullOrEmpty()]
     [string]
     $ContainerUrl = '{storage container url}',
 
@@ -85,7 +88,7 @@ function Get-AZCopyVersion
 } # end Get-AZCopyVersion
 
 
-if ( (Get-AzCopyVersion) -lt "10.2.1")
+if ( (Get-AzCopyVersion) -lt '10.2.1')
 {
     $AzCopyPath = Read-Host "Version of AzCopy.exe found at specified directory is of a lower, unsupported version."
 }
@@ -105,13 +108,13 @@ if ($OutEventLog.isPresent)
 
     if ($LASTEXITCODE -ne 0) # Failure Case
     {
-        $eventParameters.Add("EntryType", "Error")
-        $eventParameters.Add("EventId", 355)
+        $eventParameters.Add('EntryType', 'Error')
+        $eventParameters.Add('EventId', 355)
     }
     else # Success Case
     {
-        $eventParameters.Add("EntryType", "Information")
-        $eventParameters.Add("EventId", 354)
+        $eventParameters.Add('EntryType', 'Information')
+        $eventParameters.Add('EventId', 354)
     }
 
     if ( [System.Diagnostics.EventLog]::SourceExists($eventlogParameters.Source) -eq $false)
@@ -124,12 +127,12 @@ if ($OutEventLog.isPresent)
 
 if ($OutEmail.IsPresent)
 {
-    $from = "user01@contoso.com"
-    $to = "user02@contoso.com"
-    $smtpServer = "smtp.contoso.com"
+    $from = 'user01@contoso.com'
+    $to = 'user02@contoso.com'
+    $smtpServer = 'smtp.contoso.com'
 
     $emailMessage = New-Object System.Net.Mail.MailMessage($from , $to)
-    $emailMessage.Subject = ("Certificate Sync - {0} " -f (Get-Date).ToUniversalTime() )
+    $emailMessage.Subject = ('Certificate Sync - {0} ' -f (Get-Date).ToUniversalTime() )
     $emailMessage.Body = $message
 
     $smtpClient = New-Object System.Net.Mail.SmtpClient($smtpServer, 587)
