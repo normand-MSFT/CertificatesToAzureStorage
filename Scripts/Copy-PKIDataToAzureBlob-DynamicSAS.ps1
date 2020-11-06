@@ -97,9 +97,9 @@ param
     [string]
     $ApplicationId = '{appid for app registration}',
 
-    [Parameter()]
-    [ValidateSet("Certificate", "Secret")]
-    $CredentialType,
+    [Parameter(HelpMessage = 'Enter type of credential used: certificate or secret')]
+    [ValidateSet('Certificate', 'Secret')]
+    $CredentialType = '{certificate or secret}',
 
     [Parameter(HelpMessage = 'Enter your application secret or certificate thumbprint')]
     [string]
@@ -128,11 +128,11 @@ param
     [string]
     $Subscription = '{subscription id}',
 
-    [Parameter(HelpMessage = 'The event source to assign event to. This works with the -OutEventLog switch. ')]
+    [Parameter(HelpMessage = 'The event source to assign event to. This works with the -OutEventLog switch.')]
     [string]
     $EventSource = 'ADCS_AZCopy',
 
-    [Parameter(HelpMessage = 'The selected event log to write events against. ')]
+    [Parameter(HelpMessage = 'The selected event log to write events against.')]
     [string]
     $EventLog = 'Application'
 )
